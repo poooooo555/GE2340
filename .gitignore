@@ -1,0 +1,8 @@
+venv/
+.env
+__pycache__/
+*.pyc
+uploads/
+.vscode/
+.idea/
+.DS_StoreGE

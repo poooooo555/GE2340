@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Upload images{% endblock %}
+
+{% block content %}
+<!-- here is the area for upload the image  -->
+<section class="card">
+  <h2>1. Select your images</h2>
+  <p class="hint">
+    You can pick <strong>several images at once</strong>, or add them
+    <strong>one batch at a time</strong> — they will all be kept.
+    Give each one a short <strong>label</strong> so the AI knows what it is —
+    e.g. <code>timetable</code>, <code>GE2340</code>, <code>course id</code>.
+  </p>
+
+  <form action="{{ url_for('main.analyze') }}" method="post" enctype="multipart/form-data">
+    <label class="drop-zone" for="images">
+      <input
+        type="file"
+        id="images"
+        name="images"
+        accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+        multiple
+        required
+      >
+      <span class="drop-zone__text">
+        Click to choose files — you can add more, they won't be replaced
+      </span>
+    </label>
+ <!-- show the user upload image  -->
+    <div id="preview" class="preview"></div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn-primary">Generate Timetable </button>
+      <button type="button" id="clear-all" class="btn-secondary">Clear all</button>
+    </div>
+  </form>
+</section>
+
+<section class="card tips">
+  <h2>Tips for a good result</h2>
+  <ul>
+    <li>The weekly timetable image should be labelled <code>timetable</code>.</li>
+    <li>Each syllabus image should be labelled with its course code, e.g. <code>GE2340</code>.</li>
+    <li>Make sure the timetable grid is fully visible and not cropped.</li>
+    <li>Include the syllabus page that mentions the teaching weeks.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const input = document.getElementById('images');
+    const preview = document.getElementById('preview');
+    const clearBtn = document.getElementById('clear-all');
+
+    // Each item looks like: { file: File, label: String }
+    let items = [];
+
+    function renderPreview() {
+      preview.innerHTML = '';
+
+      if (items.length === 0) {
+        return;
+      }
+
+      items.forEach(function (item, index) {
+        const row = document.createElement('div');
+        row.className = 'preview-row';
+
+        // Thumbnail
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(item.file);
+        img.alt = item.file.name;
+
+        // Info column (file name + label input)
+        const info = document.createElement('div');
+        info.className = 'preview-info';
+
+        const name = document.createElement('div');
+        name.className = 'preview-name';
+        name.textContent = item.file.name;
+
+        const labelInput = document.createElement('input');
+        labelInput.type = 'text';
+        labelInput.name = 'labels';
+        labelInput.value = item.label;
+        labelInput.placeholder = 'Label (e.g. timetable, GE2340)';
+        labelInput.className = 'label-input';
+        labelInput.required = true;
+
+        // Keep the label in our items array as the user types
+        labelInput.addEventListener('input', function () {
+          item.label = this.value;
+        });
+
+        info.appendChild(name);
+        info.appendChild(labelInput);
+
+        // Remove button
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'remove-btn';
+        removeBtn.textContent = '✕';
+        removeBtn.title = 'Remove this image';
+        removeBtn.addEventListener('click', function () {
+          items.splice(index, 1);
+          renderPreview();
+        });
+
+        row.appendChild(img);
+        row.appendChild(info);
+        row.appendChild(removeBtn);
+        preview.appendChild(row);
+      });
+    }
+
+
+    function syncInput() {
+      const dt = new DataTransfer();
+      items.forEach(function (item) { dt.items.add(item.file); });
+      input.files = dt.files;
+    }
+
+
+    input.addEventListener('change', function () {
+      Array.from(input.files).forEach(function (file) {
+        // Skip exact duplicates (same name + same size)
+        const isDuplicate = items.some(function (it) {
+          return it.file.name === file.name && it.file.size === file.size;
+        });
+        if (isDuplicate) return;
+
+        items.push({
+          file: file,
+          label: file.name.replace(/\.[^.]+$/, '')
+        });
+      });
+
+      // Reset the native input so selecting the SAME file again still fires change
+      input.value = '';
+
+      renderPreview();
+      syncInput();
+    });
+
+    //clear button
+
+    clearBtn.addEventListener('click', function () {
+      items = [];
+      renderPreview();
+      syncInput();
+    });
+  })();
+</script>
+{% endblock %}

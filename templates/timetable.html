@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Your timetable{% endblock %}
+
+{% block content %}
+{% set days = schedule.get('days') or [] %}
+{% set rows = schedule.get('rows') or [] %}
+{% set courses = schedule.get('courses') or [] %}
+{% set total_weeks = schedule.get('total_weeks') or 13 %}
+
+<section class="card">
+  <h2>2. Full-semester timetable</h2>
+
+  {% if rows and days %}
+    <div class="week-controls">
+      <label for="week-filter">Show:</label>
+      <select id="week-filter">
+        <option value="all">All weeks (full semester)</option>
+        {% for w in range(1, total_weeks + 1) %}
+          <option value="{{ w }}">Week {{ w }}</option>
+        {% endfor %}
+      </select>
+      <span class="week-hint">
+        Pick a week to see only the classes that actually run that week.
+      </span>
+    </div>
+
+    <div class="table-wrapper">
+      <table class="timetable">
+        <thead>
+          <tr>
+            <th class="time-col">Time</th>
+            {% for day in days %}
+              <th>{{ day }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            {% set cells = row.get('cells') or {} %}
+            <tr>
+              <td class="time-col">{{ row.get('time', '') }}</td>
+
+              {% for day in days %}
+                {% set entries = cells.get(day) or [] %}
+                <td class="cell{% if not entries %} empty{% endif %}">
+                  {% for entry in entries %}
+                    <div
+                      class="entry"
+                      data-weeks="{{ (entry.get('weeks') or [])|join(',') }}"
+                    >
+                      <div class="course">
+                        {{ entry.get('course', '') }}
+                        {% if entry.get('section') %}
+                          <span class="section">{{ entry.get('section') }}</span>
+                        {% endif %}
+                      </div>
+                      {% if entry.get('room') %}
+                        <div class="room">{{ entry.get('room') }}</div>
+                      {% endif %}
+                      {% if entry.get('weeks_display') %}
+                        <div class="weeks">{{ entry.get('weeks_display') }}</div>
+                      {% endif %}
+                      {% if entry.get('note') %}
+                        <div class="note">{{ entry.get('note') }}</div>
+                      {% endif %}
+                    </div>
+                  {% endfor %}
+                </td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="flash">The AI could not find a usable timetable grid in the images.</p>
+  {% endif %}
+</section>
+
+{% if courses %}
+<section class="card">
+  <h2>Courses detected</h2>
+  <table class="course-list">
+    <thead>
+      <tr>
+        <th>Code</th>
+        <th>Name</th>
+        <th>Weeks</th>
+        <th>Schedule</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for course in courses %}
+        <tr>
+          <td>{{ course.get('code', '') }}</td>
+          <td>{{ course.get('name', '') }}</td>
+          <td>{{ course.get('weeks_display', '') }}</td>
+          <td>{{ course.get('schedule', '') }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+{% if schedule.get('notes') %}
+<section class="card">
+  <h2>AI notes</h2>
+  <p>{{ schedule.get('notes') }}</p>
+</section>
+{% endif %}
+
+<p class="back-link">
+  <a href="{{ url_for('main.index') }}">← Upload more images</a>
+</p>
+
+<script>
+  // Filter the timetable by week when the user picks a week from the dropdown.
+  (function () {
+    const select = document.getElementById('week-filter');
+    if (!select) return;
+
+    function applyFilter() {
+      const value = select.value;
+
+      document.querySelectorAll('table.timetable .entry').forEach(function (el) {
+        const weeks = (el.dataset.weeks || '')
+          .split(',')
+          .filter(Boolean)
+          .map(Number);
+
+        if (value === 'all' || weeks.includes(Number(value))) {
+          el.style.display = '';
+        } else {
+          el.style.display = 'none';
+        }
+      });
+
+      // Fade out rows that have no visible entries at all
+      document.querySelectorAll('table.timetable tbody tr').forEach(function (row) {
+        const entries = row.querySelectorAll('.entry');
+        if (!entries.length) return;
+        const anyVisible = Array.from(entries).some(function (el) {
+          return el.style.display !== 'none';
+        });
+        row.style.opacity = anyVisible ? '1' : '0.35';
+      });
+    }
+
+    select.addEventListener('change', applyFilter);
+  })();
+</script>
+{% endblock %}

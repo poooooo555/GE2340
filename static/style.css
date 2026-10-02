@@ -1,0 +1,439 @@
+:root {
+  --bg: #f4f6fb;
+  --card: #ffffff;
+  --ink: #1f2933;
+  --muted: #6b7280;
+  --accent: #2563eb;
+  --accent-dark: #1d4ed8;
+  --border: #e5e7eb;
+  --cell-bg: #eef4ff;
+  --cell-border: #c7dbff;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.site-header {
+  padding: 2rem 1.5rem 1rem;
+  text-align: center;
+}
+
+.site-header h1 {
+  margin: 0;
+  font-size: 1.9rem;
+}
+
+.subtitle {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1rem 1.5rem 3rem;
+}
+
+.card {
+  background: var(--card);
+  border-radius: 14px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06),
+              0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+.card h2 {
+  margin-top: 0;
+  font-size: 1.2rem;
+}
+
+.hint {
+  color: var(--muted);
+  margin-top: -0.4rem;
+}
+
+/* ---------- Upload form ---------- */
+
+.drop-zone {
+  display: block;
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  padding: 2.5rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  margin-bottom: 1rem;
+}
+
+.drop-zone:hover {
+  border-color: var(--accent);
+  background: #f8faff;
+}
+
+.drop-zone input[type="file"] {
+  display: none;
+}
+
+.drop-zone__text {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.btn-primary {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-primary:hover {
+  background: var(--accent-dark);
+}
+
+/* ---------- Flash messages ---------- */
+
+.flash {
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+  color: #9a3412;
+}
+
+.flash p { margin: 0.2rem 0; }
+
+/* ---------- Timetable ---------- */
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+table.timetable,
+table.course-list {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+table.timetable th,
+table.timetable td {
+  border: 1px solid var(--border);
+  padding: 0.5rem;
+  vertical-align: top;
+  text-align: left;
+}
+
+table.timetable thead th {
+  background: #f1f5f9;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.timetable .time-col {
+  background: #f8fafc;
+  font-weight: 600;
+  white-space: nowrap;
+  width: 130px;
+}
+
+.timetable .cell {
+  min-width: 130px;
+  background: var(--cell-bg);
+  border-color: var(--cell-border);
+}
+
+.timetable .cell.empty {
+  background: #fff;
+  border-color: var(--border);
+}
+
+.timetable .course {
+  font-weight: 700;
+  color: #1e3a8a;
+}
+
+.timetable .room {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.timetable .weeks {
+  margin-top: 0.3rem;
+  font-size: 0.76rem;
+  color: #065f46;
+  background: #d1fae5;
+  border-radius: 6px;
+  padding: 0.1rem 0.35rem;
+  display: inline-block;
+}
+
+.timetable .note {
+  margin-top: 0.3rem;
+  font-size: 0.76rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* ---------- Course list ---------- */
+
+table.course-list th,
+table.course-list td {
+  border-bottom: 1px solid var(--border);
+  padding: 0.5rem 0.6rem;
+  text-align: left;
+}
+
+table.course-list thead th {
+  background: #f1f5f9;
+}
+
+.back-link a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.back-link a:hover {
+  text-decoration: underline;
+}
+
+.tips ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--muted);
+}
+
+.tips li { margin-bottom: 0.3rem; }
+
+/* ---------- Upload preview with labels ---------- */
+
+.preview {
+  margin: 1rem 0 1.25rem;
+}
+
+.preview-row {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 0.6rem;
+  background: #fafbff;
+}
+
+.preview-row img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.preview-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.preview-name {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 0.3rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.label-input {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+.label-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* ---------- Week selector ---------- */
+
+.week-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.week-controls label {
+  font-weight: 600;
+}
+
+.week-controls select {
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: #fff;
+}
+
+.week-hint {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+/* ---------- Multiple entries per cell ---------- */
+
+.timetable .cell .entry + .entry {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--cell-border);
+}
+
+.timetable .section {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #334155;
+}
+
+/* ---------- Code in hints ---------- */
+
+code {
+  background: #eef2ff;
+  color: #3730a3;
+  padding: 0.1rem 0.35rem;
+  border-radius: 5px;
+  font-size: 0.85rem;
+}
+
+/* ---------- Upload preview with labels ---------- */
+
+.preview {
+  margin: 1rem 0 1.25rem;
+}
+
+.preview-row {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 0.6rem;
+  background: #fafbff;
+}
+
+.preview-row img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.preview-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.preview-name {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 0.3rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.label-input {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+.label-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.remove-btn {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.remove-btn:hover {
+  background: #fecaca;
+}
+
+/* ---------- Form action buttons ---------- */
+
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.btn-secondary {
+  display: inline-block;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.btn-secondary:hover {
+  background: #f1f5f9;
+  color: var(--ink);
+}
+
+/* ---------- Code in hints ---------- */
+
+code {
+  background: #eef2ff;
+  color: #3730a3;
+  padding: 0.1rem 0.35rem;
+  border-radius: 5px;
+  font-size: 0.85rem;
+}
