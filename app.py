@@ -2,6 +2,7 @@ from flask import Flask
 
 from config import MAX_CONTENT_LENGTH, SECRET_KEY
 from routes.main import main_bp
+from routes.export import export_bp
 
 
 def create_app() -> Flask:
@@ -10,6 +11,7 @@ def create_app() -> Flask:
     app.config["MAX_CONTENT_LENGTH"] = MAX_CONTENT_LENGTH
 
     app.register_blueprint(main_bp)
+    app.register_blueprint(export_bp)
     return app
 
 

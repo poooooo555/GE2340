@@ -2,15 +2,48 @@
 {% block title %}Your timetable{% endblock %}
 
 {% block content %}
-{% set days = schedule.get('days') or [] %}
+{% set days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] %}
 {% set rows = schedule.get('rows') or [] %}
 {% set courses = schedule.get('courses') or [] %}
 {% set total_weeks = schedule.get('total_weeks') or 13 %}
 
+{# Fixed 15 standard 50-minute time slots from 08:00 to 22:50 #}
+{% set fixed_slots = [
+  ('08:00 - 08:50', 8, 8),
+  ('09:00 - 09:50', 9, 9),
+  ('10:00 - 10:50', 10, 10),
+  ('11:00 - 11:50', 11, 11),
+  ('12:00 - 12:50', 12, 12),
+  ('13:00 - 13:50', 13, 13),
+  ('14:00 - 14:50', 14, 14),
+  ('15:00 - 15:50', 15, 15),
+  ('16:00 - 16:50', 16, 16),
+  ('17:00 - 17:50', 17, 17),
+  ('18:00 - 18:50', 18, 18),
+  ('19:00 - 19:50', 19, 19),
+  ('20:00 - 20:50', 20, 20),
+  ('21:00 - 21:50', 21, 21),
+  ('22:00 - 22:50', 22, 22)
+] %}
+
+<style>
+  table.timetable td.merged-class-cell {
+    vertical-align: top;
+    background-color: #eff6ff;
+  }
+  table.timetable .entry .note {
+    font-size: 0.72rem;
+    line-height: 1.25;
+    margin-top: 4px;
+    max-height: 60px;
+    overflow-y: auto;
+  }
+</style>
+
 <section class="card">
   <h2>2. Full-semester timetable</h2>
 
-  {% if rows and days %}
+  {% if rows %}
     <div class="week-controls">
       <label for="week-filter">Show:</label>
       <select id="week-filter">
@@ -24,6 +57,22 @@
       </span>
     </div>
 
+    <div class="export-bar" style="margin: 15px 0; padding: 12px; background: #f8fafc; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 15px; align-items: center;">
+      <form id="pdf-report-form" action="{{ url_for('export.open_report') }}" method="post" target="_blank" style="margin: 0;">
+        <input type="hidden" name="table_html" id="hidden-table-html">
+        <input type="hidden" name="courses_html" id="hidden-courses-html">
+        <input type="hidden" name="total_weeks" value="{{ total_weeks }}">
+        <button type="submit" class="btn-primary">Download PDF Report (All Weeks)</button>
+      </form>
+
+      <form id="gcal-sync-form" action="{{ url_for('export.start_gcal_sync') }}" method="post" style="display: flex; gap: 8px; align-items: center; margin: 0;">
+        <input type="hidden" name="events_json" id="hidden-events-json">
+        <label for="sem_start_date" style="font-size: 0.9rem; font-weight: 500;">Week 1 Monday:</label>
+        <input type="date" id="sem_start_date" name="sem_start_date" value="2026-08-31" required style="padding: 6px; border: 1px solid #cbd5e1; border-radius: 6px;">
+        <button type="submit" class="btn-secondary">Add to Google Calendar</button>
+      </form>
+    </div>
+
     <div class="table-wrapper">
       <table class="timetable">
         <thead>
@@ -35,15 +84,30 @@
           </tr>
         </thead>
         <tbody>
-          {% for row in rows %}
-            {% set cells = row.get('cells') or {} %}
+          {% for slot_label, slot_h, _ in fixed_slots %}
             <tr>
-              <td class="time-col">{{ row.get('time', '') }}</td>
+              <td class="time-col">{{ slot_label }}</td>
 
               {% for day in days %}
-                {% set entries = cells.get(day) or [] %}
-                <td class="cell{% if not entries %} empty{% endif %}">
-                  {% for entry in entries %}
+                {# Match classes from AI rows that span across or fall within the current hour (slot_h) #}
+                {% set ns = namespace(matched=[]) %}
+                {% for row in rows %}
+                  {% set raw_t = (row.get('time') or '').replace(':', '').replace(' ', '') %}
+                  {% set parts = raw_t.split('-') %}
+                  {% if parts|length == 2 and parts[0]|length >= 4 and parts[1]|length >= 4 %}
+                    {% set start_h = parts[0][:2]|int %}
+                    {% set end_h = parts[1][:2]|int %}
+                    {% if start_h <= slot_h and slot_h <= end_h %}
+                      {% set entries = (row.get('cells') or {}).get(day) or [] %}
+                      {% for e in entries %}
+                        {% set ns.matched = ns.matched + [e] %}
+                      {% endfor %}
+                    {% endif %}
+                  {% endif %}
+                {% endfor %}
+
+                <td class="cell{% if not ns.matched %} empty{% endif %}">
+                  {% for entry in ns.matched %}
                     <div
                       class="entry"
                       data-weeks="{{ (entry.get('weeks') or [])|join(',') }}"
@@ -115,6 +179,84 @@
 </p>
 
 <script>
+  // Merge consecutive identical class cells vertically using rowSpan
+  function mergeTimetableCells() {
+    const table = document.querySelector('table.timetable');
+    if (!table || !table.tBodies.length) return;
+
+    const tbody = table.tBodies[0];
+    const rows = Array.from(tbody.rows);
+    if (!rows.length) return;
+
+    // 1. Reset any previous rowSpan / hidden state first
+    rows.forEach(function (tr) {
+      Array.from(tr.cells).forEach(function (td) {
+        if (!td.classList.contains('time-col')) {
+          td.rowSpan = 1;
+          td.style.display = '';
+          td.classList.remove('merged-class-cell');
+        }
+      });
+    });
+
+    // 2. Snapshot 2D grid before mutating DOM
+    const numRows = rows.length;
+    const numCols = rows[0].cells.length;
+    const grid = rows.map(function (tr) {
+      return Array.from(tr.cells);
+    });
+
+    function getCellSignature(td) {
+      if (!td) return '';
+      const visibleEntries = Array.from(td.querySelectorAll('.entry')).filter(function (el) {
+        return el.style.display !== 'none';
+      });
+      // Only merge if there is exactly 1 visible class entry in the slot
+      if (visibleEntries.length !== 1) return '';
+      const entry = visibleEntries[0];
+      const textSig = entry.innerText.replace(/\s+/g, ' ').trim();
+      const weeksSig = entry.dataset.weeks || '';
+      return textSig + '::' + weeksSig;
+    }
+
+    // 3. Scan column by column (Mon..Sun) and merge consecutive matching slots
+    for (let c = 1; c < numCols; c++) {
+      let r = 0;
+      while (r < numRows) {
+        const currentTd = grid[r][c];
+        const sig = getCellSignature(currentTd);
+
+        if (!sig) {
+          r++;
+          continue;
+        }
+
+        let spanCount = 1;
+        while (r + spanCount < numRows) {
+          const nextTd = grid[r + spanCount][c];
+          if (getCellSignature(nextTd) === sig) {
+            spanCount++;
+          } else {
+            break;
+          }
+        }
+
+        if (spanCount > 1) {
+          currentTd.rowSpan = spanCount;
+          currentTd.classList.add('merged-class-cell');
+          for (let k = 1; k < spanCount; k++) {
+            grid[r + k][c].style.display = 'none';
+          }
+        }
+
+        r += spanCount;
+      }
+    }
+  }
+
+  // Run merge immediately on initial page load
+  mergeTimetableCells();
+
   // Filter the timetable by week when the user picks a week from the dropdown.
   (function () {
     const select = document.getElementById('week-filter');
@@ -136,6 +278,9 @@
         }
       });
 
+      // Re-merge consecutive cells for the selected week
+      mergeTimetableCells();
+
       // Fade out rows that have no visible entries at all
       document.querySelectorAll('table.timetable tbody tr').forEach(function (row) {
         const entries = row.querySelectorAll('.entry');
@@ -148,6 +293,76 @@
     }
 
     select.addEventListener('change', applyFilter);
+  })();
+
+  // Grab the rendered timetable and course list HTML before submitting to /export/report
+  (function () {
+    const reportForm = document.getElementById('pdf-report-form');
+    if (!reportForm) return;
+
+    reportForm.addEventListener('submit', function () {
+      const tableEl = document.querySelector('table.timetable');
+      const courseEl = document.querySelector('table.course-list');
+      document.getElementById('hidden-table-html').value = tableEl ? tableEl.outerHTML : '';
+      document.getElementById('hidden-courses-html').value = courseEl ? courseEl.outerHTML : '';
+    });
+  })();
+
+  // Extract merged class sessions (including multi-hour rowSpan) for Google Calendar sync
+  (function () {
+    const gcalForm = document.getElementById('gcal-sync-form');
+    if (!gcalForm) return;
+
+    gcalForm.addEventListener('submit', function () {
+      const table = document.querySelector('table.timetable');
+      if (!table) return;
+
+      const dayHeaders = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText.trim());
+      const trs = Array.from(table.querySelectorAll('tbody tr'));
+      const slotTimes = trs.map(tr => tr.children[0].innerText.trim()); // e.g., "09:00 - 09:50"
+      const eventsList = [];
+
+      for (let r = 0; r < trs.length; r++) {
+        // Every row keeps all <td> elements in DOM (merged cells are hidden via display:none),
+        // so column index c directly matches dayHeaders[c].
+        for (let c = 1; c < dayHeaders.length; c++) {
+          const td = trs[r].children[c];
+          if (!td || td.style.display === 'none') continue;
+
+          const entries = td.querySelectorAll('.entry');
+          if (!entries.length) continue;
+
+          const span = td.rowSpan || 1;
+          const startSlot = slotTimes[r] || '09:00 - 09:50';
+          const endSlot = slotTimes[Math.min(r + span - 1, slotTimes.length - 1)] || startSlot;
+
+          const startTime = startSlot.split('-')[0].trim();
+          const endTime = endSlot.split('-')[1].trim();
+
+          entries.forEach(function (entry) {
+            const titleEl = entry.querySelector('.course');
+            const roomEl = entry.querySelector('.room');
+            const noteEl = entry.querySelector('.note');
+            const weeks = (entry.dataset.weeks || '')
+              .split(',')
+              .filter(Boolean)
+              .map(Number);
+
+            eventsList.push({
+              day: dayHeaders[c],
+              start_time: startTime,
+              end_time: endTime,
+              title: titleEl ? titleEl.innerText.replace(/\s+/g, ' ').trim() : 'Class',
+              room: roomEl ? roomEl.innerText.trim() : '',
+              note: noteEl ? noteEl.innerText.trim() : '',
+              weeks: weeks
+            });
+          });
+        }
+      }
+
+      document.getElementById('hidden-events-json').value = JSON.stringify(eventsList);
+    });
   })();
 </script>
 {% endblock %}

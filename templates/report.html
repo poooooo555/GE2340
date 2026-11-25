@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>All Weeks Timetable Report</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    body { background: #fff; padding: 20px; }
+    .top-bar { background: #1e293b; color: #fff; padding: 12px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+    .week-page { margin-bottom: 35px; border-bottom: 2px dashed #cbd5e1; padding-bottom: 20px; }
+    @media print {
+      @page { size: landscape; margin: 10mm; }
+      .top-bar { display: none !important; }
+      body { padding: 0; }
+      .week-page { border: none; margin: 0; padding: 0; page-break-after: always; }
+      .week-page:last-child { page-break-after: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <span><strong>Semester Timetable Report (Week 1 - {{ total_weeks }})</strong></span>
+    <button onclick="window.print()" class="btn-primary">Save as PDF / Print</button>
+  </div>
+
+  <div id="base-table-holder" style="display:none;">{{ table_html | safe }}</div>
+  <div id="report-container"></div>
+
+  {% if courses_html %}
+    <div class="week-page">
+      <h2>Courses Summary</h2>
+      {{ courses_html | safe }}
+    </div>
+  {% endif %}
+
+  <script>
+    const baseTable = document.querySelector('#base-table-holder table');
+    const container = document.getElementById('report-container');
+    const totalWeeks = {{ total_weeks }};
+
+    if (baseTable) {
+      for (let w = 1; w <= totalWeeks; w++) {
+        const clone = baseTable.cloneNode(true);
+        clone.querySelectorAll('.entry').forEach(function (el) {
+          const weeks = (el.dataset.weeks || '').split(',').filter(Boolean).map(Number);
+          if (!weeks.includes(w)) el.remove();
+        });
+        const div = document.createElement('div');
+        div.className = 'week-page';
+        div.innerHTML = '<h2>Week ' + w + ' Timetable</h2>' + clone.outerHTML;
+        container.appendChild(div);
+      }
+    }
+    window.onload = function () { window.print(); };
+  </script>
+</body>
+</html>

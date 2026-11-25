@@ -1,3 +1,4 @@
+import uuid
 from flask import (
     Blueprint,
     current_app,
@@ -5,6 +6,7 @@ from flask import (
     redirect,
     render_template,
     request,
+    session,
     url_for,
 )
 
@@ -13,6 +15,7 @@ from services.deepseek_service import analyze_images
 from services.image_service import cleanup_files, save_uploads
 
 main_bp = Blueprint("main", __name__)
+SCHEDULE_STORE = {}
 
 
 @main_bp.route("/", methods=["GET"])

@@ -6,3 +6,4 @@ uploads/
 .vscode/
 .idea/
 .DS_StoreGE
+credentials.json
