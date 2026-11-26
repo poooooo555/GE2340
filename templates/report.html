@@ -38,19 +38,79 @@
     const container = document.getElementById('report-container');
     const totalWeeks = {{ total_weeks }};
 
+    function getCellSignature(td) {
+      const entries = Array.from(td.querySelectorAll('.entry'));
+      if (entries.length === 0) return '';
+      return entries.map(e => e.textContent.trim().replace(/\s+/g, ' ')).join('||');
+    }
+
+    function mergeWeekTable(table) {
+      const tbody = table.querySelector('tbody');
+      if (!tbody) return;
+      const trs = Array.from(tbody.querySelectorAll('tr'));
+      if (trs.length === 0) return;
+
+      const numCols = trs[0].children.length;
+      for (let c = 1; c < numCols; c++) {
+        let r = 0;
+        while (r < trs.length) {
+          const td = trs[r].children[c];
+          const sig = getCellSignature(td);
+          if (!sig) {
+            r++;
+            continue;
+          }
+
+          let span = 1;
+          while (r + span < trs.length) {
+            const nextTd = trs[r + span].children[c];
+            if (getCellSignature(nextTd) === sig) {
+              nextTd.style.display = 'none';
+              span++;
+            } else {
+              break;
+            }
+          }
+
+          if (span > 1) {
+            td.rowSpan = span;
+          }
+          r += span;
+        }
+      }
+    }
+
     if (baseTable) {
       for (let w = 1; w <= totalWeeks; w++) {
         const clone = baseTable.cloneNode(true);
+
+        // 1. Reset any residual rowSpan and display:none states from the main view
+        clone.querySelectorAll('td, th').forEach(function (cell) {
+          cell.removeAttribute('rowspan');
+          cell.style.display = '';
+        });
+        clone.querySelectorAll('.entry').forEach(function (el) {
+          el.style.display = '';
+        });
+
+        // 2. Keep only entries active in week w
         clone.querySelectorAll('.entry').forEach(function (el) {
           const weeks = (el.dataset.weeks || '').split(',').filter(Boolean).map(Number);
-          if (!weeks.includes(w)) el.remove();
+          if (!weeks.includes(w)) {
+            el.remove();
+          }
         });
+
+        // 3. Recompute rowSpan merges independently for week w
+        mergeWeekTable(clone);
+
         const div = document.createElement('div');
         div.className = 'week-page';
         div.innerHTML = '<h2>Week ' + w + ' Timetable</h2>' + clone.outerHTML;
         container.appendChild(div);
       }
     }
+
     window.onload = function () { window.print(); };
   </script>
 </body>
